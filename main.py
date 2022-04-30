@@ -12,7 +12,7 @@ class FrogBot(commands.Bot):
         # Initialise our Bot with our access token, prefix and a list of channels to join on boot.
         # Add or remove prefixes that will activate bot actions. Multiple prefixes can be used.
         # initial_channels are the channels the bot will join. Add more channels as desired.
-        super().__init__(token='yq2rawoz0tdptk622yux2ead4dg5s4', prefix=['fro'], initial_channels=['iyasu'])
+        super().__init__(token='ADD YOUR TOKEN HERE', prefix=['fro'], initial_channels=['riotgames'])
 
     async def event_ready(self):
         # Print message when bot is logged in and activated.
@@ -65,7 +65,7 @@ class FrogBot(commands.Bot):
 
         # Writes date and time of when a user joined the channel to a text file.
         # Text files are in the logs folder and divided by channel name.
-        parent_dir = "C:/Users/swall/PycharmProjects/twitchbot/logs/"
+        parent_dir = "SET THE DIRECTORY HERE"
         child_dir = (f"{channel_name}/{current_date}")
         path = os.path.join(parent_dir, child_dir)
         if os.path.exists(path) == False:
