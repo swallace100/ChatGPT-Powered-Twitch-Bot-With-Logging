@@ -37,7 +37,7 @@ class FrogBot(commands.Bot):
         # Text files are in the logs folder and divided by channel name.
         # Writes date and time of when a user joined the channel to a text file.
         # Text files are in the logs folder and divided by channel name.
-        parent_dir = "C:/Users/swall/PycharmProjects/twitchbot/logs/"
+        parent_dir = "C:/Users/user/PycharmProjects/twitchbot/logs/"
         child_dir = (f"{channel_name}/{current_date}")
         path = os.path.join(parent_dir, child_dir)
         if os.path.exists(path) == False:
@@ -65,7 +65,8 @@ class FrogBot(commands.Bot):
 
         # Writes date and time of when a user joined the channel to a text file.
         # Text files are in the logs folder and divided by channel name.
-        parent_dir = "SET THE DIRECTORY HERE"
+        # Set the directory here.
+        parent_dir = "C:/Users/user/PycharmProjects/twitchbot/logs/"
         child_dir = (f"{channel_name}/{current_date}")
         path = os.path.join(parent_dir, child_dir)
         if os.path.exists(path) == False:
@@ -79,7 +80,7 @@ class FrogBot(commands.Bot):
 
     @commands.command()
     async def gs(self, ctx: commands.Context):
-        # This command activates when someone types a word with a prefix listed about plus "gs"
+        # This command activates when someone types a word with a prefix listed above in the __init__ function, plus "gs"
         # This is supposed to activate when someone types the word "frogs"
 
         # Use random to set a range of responses for FrogBot
@@ -91,7 +92,7 @@ class FrogBot(commands.Bot):
         elif number == 1:
             await ctx.send('I like frogs OSFrog OSFrog OSFrog')
         else:
-            await ctx.send("help me step- OSFrog i'm stuck")
+            await ctx.send("where are the flies at OSFrog")
 
     @commands.command()
     async def g(self, ctx: commands.Context):
