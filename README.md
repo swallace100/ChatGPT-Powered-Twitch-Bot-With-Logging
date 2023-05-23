@@ -2,8 +2,8 @@
 
 ## Description
   
-- There weren't many tutorials on how to make TWitch bots using the site's APIs, so I made one using the API documentation.
-- This bot can response automatically with random phrases is someone in chat enters a designated word.
+- There weren't many tutorials on how to make Twitch bots using the site's APIs, so I made one using the API documentation.
+- This bot can response automatically with random phrases if someone in chat enters a designated word.
 - All chat messages are saved to a designated folder.
   
 - There are a lot of powerful moderator bots out there, but this one is for record keeping and chat interaction. 
