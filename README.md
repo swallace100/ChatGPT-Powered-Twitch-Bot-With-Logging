@@ -2,19 +2,42 @@
 
 ## Description
 
-- There weren't many tutorials on how to make Twitch bots using the site's APIs, so I made one using the API documentation.
-- This bot connects with ChatGPT 4o to create jokes, stories, nicknames, and trivia.
-- There is an option to allow users to create images, but it is much more expensive than text input, so keep that in mind when using.
-- ChatGPT created the responses for TouchGrass and About, but I just reuse its earlier output.
-- The list of commands is $About, $Draw, $Commands, $Joke, $Nickname, $Story, $TouchGrass, and $Trivia.
-- It is set to only work with the streamer is offline so that it doesn't interfere with the stream's online chat.
-- All chat messages are saved to a designated folder.
-- There are a lot of powerful moderator bots out there, but this one is for offline chat interaction with ChatGPT and chat logging.
+- An AI-powered Twitch chatbot built with EventSub WebSockets and OpenAI.
+- It hangs out in offline chat to entertain viewers when streams are quiet — delivering jokes, trivia, micro-stories, nicknames, and even AI-generated images.
+- All messages are logged per channel/day for history.
 
-## Installation
+## Features
 
-- This can be run on any development platform with Python support, such as PyCharm or Visual Studio Code.
-- Users may need to install twitchio.ext and openai
+- EventSub-based chat listener (no deprecated IRC)
+- Configurable prefixes (default: $)
+- Built-in commands:
+  - $about – bot introduction
+  - $inputs – list of commands
+  - $joke – fresh, original jokes (avoids repeats)
+  - $nickname – quirky, fun nickname ideas
+  - $story – ultra-short wholesome micro-stories
+  - $touchgrass – self-care reminders
+  - $trivia – surprising trivia facts
+  - $image <desc> – AI-generated images
+- Logging of all chat to logs/<channel>/<date>/...
+- Auto cooldown (activation_timer) so it doesn’t spam
+
+## Requirements
+
+- Python 3.9+
+- Dependencies: pip install openai python-dotenv requests websockets
+- Twitch application credentials from Twitch Dev Console
+- An OpenAI API key from OpenAI
+
+## How It Works
+
+- On startup, the bot connects to Twitch’s EventSub WebSocket (wss://eventsub.wss.twitch.tv/ws).
+- Subscribes to channel.chat.message events for each channel in INITIAL_CHANNELS.
+- On receiving a chat message:
+  - Logs it to disk
+  - Checks for command prefixes
+  - Dispatches to the matching command handler
+- Sends responses back via POST /helix/chat/messages (requires user:write:chat scope).
 
 ## Usage
 
@@ -30,12 +53,15 @@ Set the TWITCH_CLIENT_ID value in the `appSettings.env` file then run `get_token
 
 The app must be registered with Twitch to obtain the Client ID. The Client Secret must also be created manually by visiting https://dev.twitch.tv/console/apps.
 
+Run `python chatgpt_twitch_bot.py` in a CLI to start the application.
+
 ## Tech Stack
 
 - Python
-- Twitch's API - https://dev.twitch.tv/docs/api/
-- TwitchIO Library - https://twitchio.dev/en/latest/
-- OpenAI API - https://platform.openai.com/docs/api-reference
+- Twitch EventSub API - https://dev.twitch.tv/docs/api/
+- OpenAI (chat + image generation)
+- dotenv for config
+- Async WebSockets
 
 ## License
 
