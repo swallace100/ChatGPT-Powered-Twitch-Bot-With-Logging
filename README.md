@@ -1,16 +1,15 @@
-# ChatGPT and Dall-E Powered Twitch Bot with Logging
+# ChatGPT Powered Twitch Bot with Logging
 
 ## Description
-  
+
 - There weren't many tutorials on how to make Twitch bots using the site's APIs, so I made one using the API documentation.
-- This bot connects with ChatGPT 3.5-Turbo to create jokes, stories, nicknames, and trivia.
-- Dall-E is used to create images based on a prompt. Dall-E is much more expensive to use compared to ChatGPT 3.5, so keep that in mind when using.
-- ChatGPT created the responses for TouchGrass and About, but I just reuse the response I got from it earlier.
+- This bot connects with ChatGPT 4o to create jokes, stories, nicknames, and trivia.
+- There is an option to allow users to create images, but it is much more expensive than text input, so keep that in mind when using.
+- ChatGPT created the responses for TouchGrass and About, but I just reuse its earlier output.
 - The list of commands is $About, $Draw, $Commands, $Joke, $Nickname, $Story, $TouchGrass, and $Trivia.
 - It is set to only work with the streamer is offline so that it doesn't interfere with the stream's online chat.
 - All chat messages are saved to a designated folder.
-  
-- There are a lot of powerful moderator bots out there, but this one is for offline chat interaction with ChatGPT/Dall-E and chat logging. 
+- There are a lot of powerful moderator bots out there, but this one is for offline chat interaction with ChatGPT and chat logging.
 
 ## Installation
 
@@ -21,12 +20,17 @@
 
 - Individual secret keys provided by Twitch are required to access the API. Please follow the steps here to acquire yours https://dev.twitch.tv/docs/authentication/
 - Individual secret keys provided by OpenAI are also required. Create an account with OpenAI and go here to get the key https://platform.openai.com/account/api-keys
-  
-- A file path must also be provided in the designated line in the code for the chat logs to be saved.
-  
 - There are pre-set keywords that the bot will respond to, but those can be changed.
 
-## Built With
+Do not store your API or user keys in a GitHub repository.
+
+`/resources/appSettings.env_example` shows how to set and safely store all the required variables for the app.
+
+Set the TWITCH_CLIENT_ID value in the `appSettings.env` file then run `get_tokens.py` to populate the other authorization related variables. The Twitch client ID can be obtained by visiting https://dev.twitch.tv/console/apps.
+
+The app must be registered with Twitch to obtain the Client ID. The Client Secret must also be created manually by visiting https://dev.twitch.tv/console/apps.
+
+## Tech Stack
 
 - Python
 - Twitch's API - https://dev.twitch.tv/docs/api/
@@ -36,5 +40,3 @@
 ## License
 
 Distributed under the MIT License.
-
-

@@ -1,25 +1,63 @@
 # Get Twitch Access Token at https://twitchtokengenerator.com/
 from twitchio.ext import commands
 from datetime import datetime
+from dotenv import load_dotenv
 import requests
 import random
 import os
 import openai
 import threading
 
-openai.api_key = 'ADD YOUR SECRET KEY HERE'
-
-# This is the class for the bot. Only one class can be active at once as far as I can tell.
-# It is only meant to be used while the channel is offline.
+# This is the class for the bot. Only one class can be active at once.
+# This is an offline chat bot and will only work when a streamer is offline.
 class IntermissionBot(commands.Bot):
 
+    # Get the environment variables
+    load_dotenv("resources/appSettings.env")
+
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+
     def __init__(self):
-        # Initialise our Bot with our access token, prefix and a list of channels to join on boot.
-        # Add or remove prefixes that will activate bot actions. Multiple prefixes can be used.
-        # initial_channels are the channels the bot will join. Add more channels as desired.
-        super().__init__(token='ADD YOUR TOKEN HERE', prefix=['$'], initial_channels=['riotgames'])
+
+        # --- helpers ---
+        def _split_list(val: str, default: str = ""):
+            raw = (val or default).replace(";", ",")
+            return [x.strip() for x in raw.split(",") if x.strip()]
+
+        def _channels(val: str):
+            return [c.lstrip("#").lower() for c in _split_list(val)]
+
+        # --- read settings ---
+        token_env = os.getenv("TWITCH_ACCESS_TOKEN", "")
+        token = token_env if token_env.startswith("oauth:") else f"oauth:{token_env}"
+
+        client_id = os.getenv("TWITCH_CLIENT_ID")
+        client_secret = os.getenv("TWITCH_CLIENT_SECRET")  # may be empty if using device flow only
+        bot_id = os.getenv("TWITCH_BOT_ID")
+        prefixes = _split_list(os.getenv("PREFIX"), "$") or ["$"]
+        channels = _channels(os.getenv("INITIAL_CHANNELS"))
+        log_dir = os.getenv("LOG_DIRECTORY", "logs")
+
+        # --- basic validation ---
+        if not client_id:
+            raise ValueError("TWITCH_CLIENT_ID is required.")
+        if not token_env:
+            raise ValueError("TWITCH_ACCESS_TOKEN is required.")
+        if not bot_id:
+            raise ValueError("TWITCH_BOT_ID is required.")
+        if not channels:
+            raise ValueError("INITIAL_CHANNELS is empty. Provide at least one channel (comma-separated).")
+
+        super().__init__(
+            token=token,
+            client_id=client_id,
+            client_secret=client_secret,
+            bot_id=bot_id,
+            prefix=prefixes
+        )
 
         self._active = True
+        self.log_directory=log_dir
 
     def activation_timer(self):
         timer = threading.Timer(10, self.set_activation, args=[True])
@@ -35,46 +73,33 @@ class IntermissionBot(commands.Bot):
             self.activation_timer()
 
     async def event_ready(self):
-        # Print message when bot is logged in and activated.
-        print('IntermissionBot is up. Power of AI to the people!')
+        print(f"Logged in as: {self.user.name} (id: {self.user.id})")
 
     async def event_message(self, message):
-        # Messages with echo set to True are messages sent by the bot...
+        print("Message received")
         if message.echo:
             return
+
+        # Let TwitchIO's command processor run
+        await super().event_message(message)
 
         user = message.author.name
         channel_name = message.channel.name
 
         now = datetime.now()
         current_time = now.strftime("%H:%M:%S")
-        current_date = now.date()
+        current_date_str = str(now.date())
 
-        # This prints all messages to the console.
-        print(f'{current_date} {current_time} {user}: {message.content}')
+        print(f"{current_date_str} {current_time} {user}: {message.content}")
 
-        # Writes date and time of all messages to a text file.
-        # Text files are in the logs folder and divided by channel name.
-        # Writes date and time of when a user joined the channel to a text file.
-        # Text files are in the logs folder and divided by channel name.
-        parent_dir = "C:/Users/user/PycharmProjects/twitchbot/logs/"
-        child_dir = f"{channel_name}/{current_date}"
-        path = os.path.join(parent_dir, child_dir)
-        if os.path.exists(path) is False:
-            os.makedirs(path)
-        else:
-            pass
+        # Build log path relative to configured LOG_DIRECTORY
+        path = os.path.join(self.log_directory, channel_name, current_date_str)
+        os.makedirs(path, exist_ok=True)
 
-        file_path = f'./logs/{channel_name}/{current_date}/{current_date}.txt'
+        file_path = os.path.join(path, f"{current_date_str}.txt")
 
-        # Open the file using UTF-8 encoding
-        with open(file_path, 'a', encoding='utf-8') as file_object:
-            formatted_message = f'{current_date} {current_time} {user}: {message.content}\n'
-            file_object.write(formatted_message)
-
-        # Since we have commands and are overriding the default `event_message`
-        # We must let the bot know we want to handle and invoke our commands...
-        await self.handle_commands(message)
+        with open(file_path, "a", encoding="utf-8") as f:
+            f.write(f"{current_date_str} {current_time} {user}: {message.content}\n")
 
     # This function prints when someone joins the channel and records the time.
     async def event_join(self, channel, user):
@@ -89,7 +114,7 @@ class IntermissionBot(commands.Bot):
         # Writes date and time of when a user joined the channel to a text file.
         # Text files are in the logs folder and divided by channel name.
         # Set the directory here.
-        parent_dir = "C:/Users/user/PycharmProjects/twitchbot/logs/"
+        parent_dir = self.log_directory
         child_dir = f"{channel_name}/{current_date}"
         path = os.path.join(parent_dir, child_dir)
         if os.path.exists(path) is False:
@@ -276,7 +301,7 @@ class IntermissionBot(commands.Bot):
             text_to_send = "Hi chat, tell me some Twitch trivia in 150 characters or less"
 
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": text_to_send}
             ]
