@@ -25,7 +25,7 @@ DEFAULT_KEYS = {
     "TWITCH_BOT_ID": "",
     "PREFIX": "$",
     "INITIAL_CHANNELS": "riotgames",
-    "LOG_DIRECTORY": "logs",
+    "LOG_DIRECTORY": "C:/twitch_logs",
 }
 
 def parse_env_file(path: Path) -> dict:
@@ -64,7 +64,7 @@ def main():
         print("   → Open resources/appSettings.env and set TWITCH_CLIENT_ID=your_client_id")
         sys.exit(1)
 
-    scopes = ["chat:read", "chat:edit"]
+    scopes = ["chat:read", "chat:edit", "user:read:chat", "user:write:chat"]
 
     # Step 1: Request device code
     r = requests.post(
