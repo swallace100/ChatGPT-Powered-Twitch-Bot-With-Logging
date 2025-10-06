@@ -1,0 +1,5 @@
+# Core runtime deps for the Twitch Chat Bot
+openai>=2.1.0
+python-dotenv>=1.1.1
+requests>=2.7.0
+websockets>=15.0.1

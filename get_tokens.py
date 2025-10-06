@@ -6,7 +6,6 @@ and save them into resources/appSettings.env (preserving existing values).
 Run manually when you need fresh tokens.
 """
 
-import os
 import sys
 import time
 import requests
@@ -28,6 +27,7 @@ DEFAULT_KEYS = {
     "LOG_DIRECTORY": "C:/twitch_logs",
 }
 
+
 def parse_env_file(path: Path) -> dict:
     env = {}
     if path.exists():
@@ -38,6 +38,7 @@ def parse_env_file(path: Path) -> dict:
             k, v = line.split("=", 1)
             env[k.strip()] = v.strip()
     return env
+
 
 def write_env_file(path: Path, env: dict):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -52,6 +53,7 @@ def write_env_file(path: Path, env: dict):
             f.write(f"{k}={v}\n")
     print(f"✅ Updated {path}")
 
+
 def main():
     # Load/initialize env file
     env = parse_env_file(ENV_FILE)
@@ -61,7 +63,9 @@ def main():
     client_id = env.get("TWITCH_CLIENT_ID", "").strip()
     if not client_id:
         print("❌ Missing TWITCH_CLIENT_ID in resources/appSettings.env")
-        print("   → Open resources/appSettings.env and set TWITCH_CLIENT_ID=your_client_id")
+        print(
+            "   → Open resources/appSettings.env and set TWITCH_CLIENT_ID=your_client_id"
+        )
         sys.exit(1)
 
     scopes = ["chat:read", "chat:edit", "user:read:chat", "user:write:chat"]
@@ -133,7 +137,9 @@ def main():
             print("\n✅ Success! Tokens received.")
             print(f"Access Token (truncated): {env['TWITCH_ACCESS_TOKEN'][:12]}...")
             if env["TWITCH_REFRESH_TOKEN"]:
-                print(f"Refresh Token (truncated): {env['TWITCH_REFRESH_TOKEN'][:12]}...")
+                print(
+                    f"Refresh Token (truncated): {env['TWITCH_REFRESH_TOKEN'][:12]}..."
+                )
 
             write_env_file(ENV_FILE, env)
             break
@@ -161,6 +167,7 @@ def main():
             # Unexpected error
             print(f"❌ Error polling token: {error_type}")
             sys.exit(1)
+
 
 if __name__ == "__main__":
     try:
