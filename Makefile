@@ -39,8 +39,15 @@ install: venv
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements.txt
 
+ifeq ($(OS),Windows_NT)
+install-dev: install
+	@if exist requirements-dev.txt ( \
+		$(PIP) install -r requirements-dev.txt \
+	)
+else
 install-dev: install
 	@if [ -f requirements-dev.txt ]; then $(PIP) install -r requirements-dev.txt; fi
+endif
 
 run: ensure-env
 	$(PY) main.py

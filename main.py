@@ -1,5 +1,12 @@
-import os, json, time, asyncio, datetime, pathlib
-import websockets, requests, random
+import os
+import json
+import time
+import asyncio
+import datetime
+import pathlib
+import websockets
+import requests
+import random
 from openai import OpenAI
 from base64 import b64decode
 from dotenv import load_dotenv
