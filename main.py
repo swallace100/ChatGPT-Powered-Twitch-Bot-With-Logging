@@ -133,7 +133,9 @@ class EventSubChatBot:
         r.raise_for_status()
         data = r.json().get("data", [])
         self._login_to_id = {u["login"].lower(): u["id"] for u in data}
-        missing = [l for l in self.channel_logins if l not in self._login_to_id]
+        missing = [
+            login for login in self.channel_logins if login not in self._login_to_id
+        ]
         if missing:
             print(f"⚠️ Could not resolve these logins: {missing}")
         else:
