@@ -24,7 +24,7 @@
 
 ## Requirements
 
-- Python 3.9+
+- Python 3.13+
 - Dependencies: pip install openai python-dotenv requests websockets
 - Twitch application credentials from Twitch Dev Console
 - An OpenAI API key from OpenAI

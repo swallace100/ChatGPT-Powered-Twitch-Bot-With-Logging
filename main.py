@@ -19,14 +19,16 @@ class EventSubChatBot:
         - Integrates with OpenAI for generative responses.
     """
 
-    def __init__(self,
-                 client_id: str,
-                 access_token: str,
-                 bot_user_id: str,
-                 channel_logins: list[str],
-                 log_directory: str = "logs",
-                 active: bool = True,
-                prefixes=("$",)):
+    def __init__(
+        self,
+        client_id: str,
+        access_token: str,
+        bot_user_id: str,
+        channel_logins: list[str],
+        log_directory: str = "logs",
+        active: bool = True,
+        prefixes=("$",),
+    ):
         """
         Initialize the chatbot.
 
@@ -39,14 +41,16 @@ class EventSubChatBot:
             channels (dict[str, str]): Mapping of channel login → broadcaster_user_id.
             log_dir (Path): Directory where chat logs are stored.
         """
-        
+
         # Store config values
         self.client_id = client_id
         self.access_token = access_token.removeprefix("oauth:")
         self.bot_user_id = str(bot_user_id)
         self.channel_logins = channel_logins
         self.log_dir = pathlib.Path(log_directory)
-        self.prefixes = tuple(prefixes) if isinstance(prefixes, (list, tuple)) else (prefixes,)
+        self.prefixes = (
+            tuple(prefixes) if isinstance(prefixes, (list, tuple)) else (prefixes,)
+        )
         self._live_cache = {}  # broadcaster_id -> (is_live_bool, timestamp)
         self._active = active
 
@@ -62,10 +66,10 @@ class EventSubChatBot:
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
         }
-        
+
         self._ws = None
         self._session_id = None
-        self._sub_ids = {}      # login -> subscription id
+        self._sub_ids = {}  # login -> subscription id
         self._login_to_id = {}  # login -> numeric id
 
     # ------------ public control ------------
@@ -103,9 +107,9 @@ class EventSubChatBot:
             "sender_id": self.bot_user_id,
             "message": message,
         }
-        r = requests.post(f"{HELIX}/chat/messages",
-                          headers=self._headers,
-                          json=data, timeout=15)
+        r = requests.post(
+            f"{HELIX}/chat/messages", headers=self._headers, json=data, timeout=15
+        )
         if r.status_code >= 400:
             print("SEND ERROR", r.status_code, r.text)
         r.raise_for_status()
@@ -116,7 +120,9 @@ class EventSubChatBot:
         if not self.channel_logins:
             return
         params = [("login", login) for login in self.channel_logins]
-        r = requests.get(f"{HELIX}/users", headers=self._headers, params=params, timeout=15)
+        r = requests.get(
+            f"{HELIX}/users", headers=self._headers, params=params, timeout=15
+        )
         r.raise_for_status()
         data = r.json().get("data", [])
         self._login_to_id = {u["login"].lower(): u["id"] for u in data}
@@ -140,8 +146,12 @@ class EventSubChatBot:
             },
             "transport": {"method": "websocket", "session_id": self._session_id},
         }
-        r = requests.post(f"{HELIX}/eventsub/subscriptions",
-                          headers=self._headers, data=json.dumps(payload), timeout=15)
+        r = requests.post(
+            f"{HELIX}/eventsub/subscriptions",
+            headers=self._headers,
+            data=json.dumps(payload),
+            timeout=15,
+        )
         if r.status_code >= 400:
             print("SUBSCRIBE ERROR", login, r.status_code, r.text)
             r.raise_for_status()
@@ -218,7 +228,7 @@ class EventSubChatBot:
 
         # parse: $cmd rest...
         prefix = next(p for p in self.prefixes if text.startswith(p))
-        parts = text[len(prefix):].strip().split(None, 1)
+        parts = text[len(prefix) :].strip().split(None, 1)
         cmd = parts[0].lower() if parts else ""
         arg = parts[1] if len(parts) > 1 else ""
 
@@ -239,7 +249,9 @@ class EventSubChatBot:
             return
 
         # Run the handler (async), catch errors, send reply
-        asyncio.create_task(self._run_command(handler, broadcaster_id, channel_login, user_login, arg))
+        asyncio.create_task(
+            self._run_command(handler, broadcaster_id, channel_login, user_login, arg)
+        )
 
     def _log_message(self, channel: str, user: str, text: str):
         now = datetime.datetime.now()
@@ -251,8 +263,14 @@ class EventSubChatBot:
         with file_path.open("a", encoding="utf-8") as f:
             f.write(f"{date_str} {time_str} {user}: {text}\n")
 
-
-    async def _run_command(self, handler, broadcaster_id: str, channel_login: str, user_login: str, arg: str):
+    async def _run_command(
+        self,
+        handler,
+        broadcaster_id: str,
+        channel_login: str,
+        user_login: str,
+        arg: str,
+    ):
         # auto-disable after one command
         try:
             # Skip if channel is live
@@ -280,13 +298,13 @@ class EventSubChatBot:
             f"{HELIX}/streams",
             headers=self._headers,
             params={"user_id": broadcaster_id},
-            timeout=10
+            timeout=10,
         )
         r.raise_for_status()
         is_live = bool(r.json().get("data"))
         self._live_cache[broadcaster_id] = (is_live, now)
         return is_live
-    
+
     # ------------------- COMMANDS -------------------
     # Each returns text to send (or None)
 
@@ -363,7 +381,9 @@ class EventSubChatBot:
 
     async def cmd_trivia(self, user: str, arg: str) -> str | None:
         banlist = "\n".join(self._recent_trivia[-10:])  # last 10 pieces of trivia
-        topic = random.choice(["history", "internet", "culture", "pop culture", "movies", "Twitch"])
+        topic = random.choice(
+            ["history", "internet", "culture", "pop culture", "movies", "Twitch"]
+        )
 
         prompt = (
             "You are a fun trivia master on Twitch. "
@@ -393,11 +413,11 @@ class EventSubChatBot:
         else:
             return f"🖼️ Image saved locally: {url_or_path}"
 
-
     # ------------------- OpenAI helpers -------------------
     async def _ask_openai(self, prompt: str) -> str:
-        
+
         import openai
+
         openai.api_key = os.getenv("OPENAI_API_KEY", "")
         if not openai.api_key:
             return "OpenAI API key missing."
@@ -409,15 +429,17 @@ class EventSubChatBot:
                 messages=[
                     {"role": "system", "content": prompt},
                 ],
-                temperature=1.2
+                temperature=1.2,
             )
             return resp.choices[0].message.content.strip()
         except Exception as e:
             print("OpenAI error:", e)
             return "⚠️ Sorry, I couldn't come up with a reply right now."
-        
+
     # --- helper: OpenAI image gen (v1+ SDK) ---
-    def _generate_image(self, prompt: str, size: str = "1024x1024") -> tuple[str | None, str | None]:
+    def _generate_image(
+        self, prompt: str, size: str = "1024x1024"
+    ) -> tuple[str | None, str | None]:
         """
         Returns (url_or_path, error_message). If OpenAI returns a URL, we use it.
         Otherwise we save base64 to logs/images and return the local path.
@@ -429,7 +451,7 @@ class EventSubChatBot:
         try:
             client = OpenAI(api_key=api_key)
             resp = client.images.generate(
-                #mode=gpt-image-1, # your org must be registered to use the latest models
+                # mode=gpt-image-1, # your org must be registered to use the latest models
                 prompt=prompt,
                 size=size,
             )
@@ -444,7 +466,7 @@ class EventSubChatBot:
             b64 = getattr(data, "b64_json", None)
             if b64:
                 ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                out_dir = (self.log_dir / "images")
+                out_dir = self.log_dir / "images"
                 out_dir.mkdir(parents=True, exist_ok=True)
                 file_path = out_dir / f"image_{ts}.png"
                 with open(file_path, "wb") as f:
@@ -456,6 +478,7 @@ class EventSubChatBot:
             print("OpenAI Image error:", e)
             return None, "⚠️ Sorry, I couldn’t generate that image right now."
 
+
 # ----------------- quick runner -----------------
 if __name__ == "__main__":
     load_dotenv("resources/appSettings.env")
@@ -466,14 +489,16 @@ if __name__ == "__main__":
 
     CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
     ACCESS_TOKEN = os.getenv("TWITCH_ACCESS_TOKEN")  # user token
-    BOT_USER_ID = os.getenv("TWITCH_BOT_ID")         # numeric id (your account)
+    BOT_USER_ID = os.getenv("TWITCH_BOT_ID")  # numeric id (your account)
     INITIAL_CHANNELS = split_list(os.getenv("INITIAL_CHANNELS"))
     LOG_DIR = os.getenv("LOG_DIRECTORY", "logs")
     PREFIXES = split_list(os.getenv("PREFIX"))
 
-    for k, v in [("TWITCH_CLIENT_ID", CLIENT_ID),
-                 ("TWITCH_ACCESS_TOKEN", ACCESS_TOKEN),
-                 ("TWITCH_BOT_ID", BOT_USER_ID)]:
+    for k, v in [
+        ("TWITCH_CLIENT_ID", CLIENT_ID),
+        ("TWITCH_ACCESS_TOKEN", ACCESS_TOKEN),
+        ("TWITCH_BOT_ID", BOT_USER_ID),
+    ]:
         if not v:
             raise SystemExit(f"Missing {k} in env")
 
@@ -484,7 +509,7 @@ if __name__ == "__main__":
         channel_logins=INITIAL_CHANNELS or ["riotgames"],  # default fallback
         log_directory=LOG_DIR or "C:/twitch_logs",
         active=True,
-        prefixes=PREFIXES or ["$"]
+        prefixes=PREFIXES or ["$"],
     )
 
     try:
