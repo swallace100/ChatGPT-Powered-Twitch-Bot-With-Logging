@@ -1,4 +1,4 @@
-# -------- Chat Bot Makefile (Windows + POSIX) --------
+# -------- Chat Bot Makefile (Windows + POSIX Compatible) --------
 
 ifeq ($(OS),Windows_NT)
   VENV_BIN := .venv\Scripts
@@ -20,7 +20,7 @@ help:
 	@echo "Targets:"
 	@echo "  make venv         - Create .venv (Python 3.13+)"
 	@echo "  make install      - Install runtime deps into .venv"
-	@echo "  make install-dev  - Install dev deps (requirements-dev.txt)"
+	@echo "  make install-dev  - Install dev deps + pre-commit hook"
 	@echo "  make run          - Run the bot (uses $(ENV_FILE))"
 	@echo "  make tokens       - Launch Twitch device flow to populate tokens"
 	@echo "  make freeze       - Export exact versions to requirements.lock.txt"
@@ -31,7 +31,8 @@ help:
 	@echo ""
 	@echo "Tip: Copy resources/appSettings.env_example to $(ENV_FILE) and edit."
 
-# Create the venv (uses py -3.13 on Windows; python3 elsewhere)
+# ---- Environment setup ----
+
 venv:
 	$(PY_CREATE) -m venv .venv
 
@@ -39,15 +40,26 @@ install: venv
 	$(PIP) install --upgrade pip
 	$(PIP) install -r requirements.txt
 
+# Cross-platform install-dev (handles Windows and POSIX)
 ifeq ($(OS),Windows_NT)
 install-dev: install
+	@echo Installing development dependencies...
 	@if exist requirements-dev.txt ( \
 		$(PIP) install -r requirements-dev.txt \
+	) else ( \
+		echo "No requirements-dev.txt found, skipping." \
 	)
+	@echo Installing pre-commit hook...
+	$(PY) -m pre_commit install
 else
 install-dev: install
-	@if [ -f requirements-dev.txt ]; then $(PIP) install -r requirements-dev.txt; fi
+	@echo "Installing development dependencies..."
+	@if [ -f requirements-dev.txt ]; then $(PIP) install -r requirements-dev.txt; else echo "No requirements-dev.txt found, skipping."; fi
+	@echo "Installing pre-commit hook..."
+	$(PY) -m pre_commit install
 endif
+
+# ---- Core actions ----
 
 run: ensure-env
 	$(PY) main.py
@@ -62,7 +74,8 @@ freeze:
 show-env:
 	@echo $(ENV_FILE)
 
-# Create env file from template if missing
+# ---- Helpers ----
+
 ifeq ($(OS),Windows_NT)
 ensure-env:
 	@if not exist "$(ENV_FILE)" ( \
@@ -80,7 +93,7 @@ ensure-env:
 endif
 
 clean:
-	-@echo Cleaning...
+	@echo Cleaning...
 ifeq ($(OS),Windows_NT)
 	-@if exist .venv rmdir /S /Q .venv
 	-@if exist __pycache__ rmdir /S /Q __pycache__
@@ -90,6 +103,8 @@ else
 	-rm -rf .venv __pycache__ logs
 	-rm -f requirements.lock.txt
 endif
+
+# ---- QA / tooling ----
 
 lint:
 	$(PY) -m ruff check .
