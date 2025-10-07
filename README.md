@@ -8,7 +8,7 @@
 
 > An **AI-powered Twitch chatbot** built with Python 3.13+, EventSub WebSockets, and OpenAI.
 
-This bot keeps **offline Twitch chats alive** — telling jokes, sharing trivia, generating nicknames, and creating AI-generated images — while **logging every message** in neatly organized per-channel folders for later review or analytics.
+This bot keeps **offline Twitch chats alive** by telling jokes, sharing trivia, generating nicknames, and creating AI-generated images while **logging every message** in neatly organized per-channel folders for later review or analytics.
 
 ---
 
