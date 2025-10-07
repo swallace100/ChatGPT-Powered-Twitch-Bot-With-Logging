@@ -6,6 +6,24 @@
 - It hangs out in offline chat to entertain viewers when streams are quiet — delivering jokes, trivia, micro-stories, nicknames, and even AI-generated images.
 - All messages are logged per channel/day for history.
 
+## Architecture
+
+```graphql
+bot/
+  __init__.py
+  config.py            # load .env, parse types, defaults
+  twitch_api.py        # Helix REST calls (send_message, users, streams)
+  eventsub_ws.py       # WebSocket session + subscriptions
+  commands/
+    __init__.py
+    registry.py        # CommandRegistry + CommandContext
+    builtins.py        # about, inputs, joke, nickname, story, trivia, image
+  services/
+    openai_service.py  # text + image methods; one client instance
+    logger.py          # file logging (path mgmt and write)
+  app.py               # wire everything and run
+```
+
 ## Features
 
 - EventSub-based chat listener (no deprecated IRC)
