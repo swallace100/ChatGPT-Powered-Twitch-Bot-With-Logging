@@ -1,0 +1,71 @@
+[project]
+name = "twitch-ai-chatbot"
+version = "0.1.0"
+description = "AI-powered Twitch Chat Bot using OpenAI + EventSub WebSocket"
+authors = [{ name = "Steven Wallace" }]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "openai>=1.0.0",
+    "requests>=2.32.0",
+    "websockets>=12.0",
+    "python-dotenv>=1.0.0"
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-q --tb=short --disable-warnings"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.black]
+line-length = 90
+target-version = ["py313"]
+skip-string-normalization = true
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.git
+    | \.venv
+    | build
+    | dist
+    | resources
+  )/
+)
+'''
+
+[tool.ruff]
+target-version = "py313"
+line-length = 90
+lint.select = ["E", "F", "I", "B", "UP", "S", "N", "A"]
+lint.ignore = [
+    "E501",  # line length handled by black
+    "B008",  # function default arguments
+]
+exclude = [".venv", "build", "dist", "resources"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.coverage.run]
+branch = true
+source = ["bot"]
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.pre-commit]
+repos = [
+    { repo = "https://github.com/psf/black", rev = "stable", hooks = [{id = "black"}] },
+    { repo = "https://github.com/astral-sh/ruff-pre-commit", rev = "stable", hooks = [{id = "ruff"}] },
+    { repo = "https://github.com/pre-commit/pre-commit-hooks", rev = "stable", hooks = [
+        {id = "check-added-large-files"},
+        {id = "check-json"},
+        {id = "end-of-file-fixer"},
+        {id = "trailing-whitespace"},
+    ] }
+]
