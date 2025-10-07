@@ -52,6 +52,7 @@ def _make_command_bridge(bot: EventSubChatBot) -> Callable[[Dict], Awaitable[Non
             api_send=bot.send_message,
             suppress_when_live=getattr(bot, "_suppress_when_live", True),
             is_live_fn=bot.is_channel_live,
+            activation_timer=bot.activation_timer,
         )
 
     return _bridge

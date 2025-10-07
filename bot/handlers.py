@@ -5,6 +5,8 @@ from typing import Awaitable, Callable, Optional
 from bot.commands import CommandContext
 from bot.bootstrap import registry, BOT_USER_ID
 
+import asyncio
+
 # api_send: (broadcaster_id, sender_id, message) -> None
 # is_live_fn: async (broadcaster_id) -> bool
 
@@ -17,6 +19,7 @@ async def handle_chat_message(
     api_send: Callable[[str, str, str], None],
     suppress_when_live: bool,
     is_live_fn: Callable[[str], Awaitable[bool]],
+    activation_timer: Optional[Callable[[int], Awaitable[None]]] = None,
 ) -> None:
     """Parse a chat line and dispatch a command, sending a reply if produced.
 
@@ -58,5 +61,8 @@ async def handle_chat_message(
     if reply:
         try:
             api_send(broadcaster_id, BOT_USER_ID, reply)
+            if activation_timer:
+                # prevent spam
+                asyncio.create_task(activation_timer())
         except Exception as e:
             print(f"[handlers] Failed to send message: {e!r}")
