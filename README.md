@@ -1,7 +1,14 @@
 # 🎥 ChatGPT-Powered Twitch Bot with Logging
 
-An **AI-powered Twitch chatbot** built with Python 3.13+, EventSub WebSockets, and OpenAI.
-It keeps offline Twitch chats alive — telling jokes, sharing trivia, inventing nicknames, and even generating images — while logging every message for later review.
+![Python](https://img.shields.io/badge/Python-3.13+-blue)
+![Twitch API](https://img.shields.io/badge/Twitch-EventSub-purple)
+![OpenAI](https://img.shields.io/badge/OpenAI-API-orange)
+![License: MIT](https://img.shields.io/badge/License-MIT-green)
+![Build](https://img.shields.io/badge/Status-Ready--to--Run-success)
+
+> An **AI-powered Twitch chatbot** built with Python 3.13+, EventSub WebSockets, and OpenAI.
+
+This bot keeps **offline Twitch chats alive** — telling jokes, sharing trivia, generating nicknames, and creating AI-generated images — while **logging every message** in neatly organized per-channel folders for later review or analytics.
 
 ---
 
