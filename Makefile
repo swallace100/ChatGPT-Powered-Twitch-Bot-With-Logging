@@ -114,3 +114,6 @@ format:
 
 precommit:
 	$(PY) -m pre_commit run --all-files
+
+test: install-dev
+	.venv\Scripts\python.exe -m pytest -q tests

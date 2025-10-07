@@ -1,56 +1,107 @@
-# ChatGPT Powered Twitch Bot with Logging
+# 🎥 ChatGPT-Powered Twitch Bot with Logging
 
-## Description
+An **AI-powered Twitch chatbot** built with Python 3.13+, EventSub WebSockets, and OpenAI.
+It keeps offline Twitch chats alive — telling jokes, sharing trivia, inventing nicknames, and even generating images — while logging every message for later review.
 
-- An AI-powered Twitch chatbot built with EventSub WebSockets and OpenAI.
-- It hangs out in offline chat to entertain viewers when streams are quiet — delivering jokes, trivia, micro-stories, nicknames, and even AI-generated images.
-- All messages are logged per channel/day for history.
+---
 
-## Architecture
+## ✨ Features
 
-```graphql
+- **Modern EventSub listener** (no deprecated IRC)
+- **OpenAI integration** for text + image generation
+- **Built-in fun commands**:
+  | Command | Description |
+  |----------|-------------|
+  | `$about` | Introductory message |
+  | `$inputs` | List available commands |
+  | `$joke` | Generates a fresh, original Twitch-friendly joke |
+  | `$nickname` | Suggests a quirky nickname |
+  | `$story` | Tiny wholesome micro-stories |
+  | `$touchgrass` | Gentle self-care reminders |
+  | `$trivia` | Surprising trivia facts |
+  | `$image <desc>` | AI-generated images |
+- **Structured chat logging** to `logs/<channel>/<date>/`
+- **Command cooldowns** to avoid spam
+- **Clean modular architecture** (OpenAI service, Twitch API helper, command registry)
+
+---
+
+## 🏗️ Architecture
+
+```bash
 bot/
   __init__.py
-  config.py            # load .env, parse types, defaults
+  config.py            # Loads .env, parses types, sets defaults
   twitch_api.py        # Helix REST calls (send_message, users, streams)
-  eventsub_ws.py       # WebSocket session + subscriptions
+  eventsub_bot.py      # WebSocket session + subscriptions
   commands/
     __init__.py
     registry.py        # CommandRegistry + CommandContext
     builtins.py        # about, inputs, joke, nickname, story, trivia, image
   services/
-    openai_service.py  # text + image methods; one client instance
-    logger.py          # file logging (path mgmt and write)
-  app.py               # wire everything and run
+    openai_service.py  # Text + image generation via OpenAI
+    logger.py          # File logging (path management & writes)
+  handlers.py          # Message dispatch bridge
+  app.py               # Wire everything together and run
+resources/
+  appSettings.env_example
+tests/
+  test_*.py
 ```
-
-## Features
-
-- EventSub-based chat listener (no deprecated IRC)
-- Configurable prefixes (default: $)
-- Built-in commands:
-  - $about – bot introduction
-  - $inputs – list of commands
-  - $joke – fresh, original jokes (avoids repeats)
-  - $nickname – quirky, fun nickname ideas
-  - $story – ultra-short wholesome micro-stories
-  - $touchgrass – self-care reminders
-  - $trivia – surprising trivia facts
-  - $image <desc> – AI-generated images
-- Logging of all chat to logs/<channel>/<date>/...
-- Auto cooldown (activation_timer) so it doesn’t spam
 
 ## Requirements
 
 - Python 3.13+
-- Dependencies: pip install openai python-dotenv requests websockets
-- Twitch application credentials from Twitch Dev Console
-- An OpenAI API key from OpenAI
+- Dependencies:
 
-## How It Works
+```bash
+make install
+```
 
-- On startup, the bot connects to Twitch’s EventSub WebSocket (wss://eventsub.wss.twitch.tv/ws).
-- Subscribes to channel.chat.message events for each channel in INITIAL_CHANNELS.
+or for development
+
+```bash
+make install-dev
+```
+
+- Acounts
+  - Twitch Dev account: [Twitch Dev Console](https://dev.twitch.tv/console/apps)
+  - OpenAPI API Key: [OpenAI API Dashboard](https://platform.openai.com/api-keys)
+
+## 🔑 Configuration
+
+Copy and edit the example environment file:
+
+```bash
+cp resources/appSettings.env_example resources/appSettings.env
+```
+
+Populate it with your Twitch and OpenAI credentials:
+
+```env
+OPENAI_API_KEY=sk-...
+TWITCH_CLIENT_ID=your_client_id
+TWITCH_CLIENT_SECRET=your_secret
+TWITCH_ACCESS_TOKEN=
+TWITCH_REFRESH_TOKEN=
+TWITCH_BOT_ID=your_numeric_id
+INITIAL_CHANNELS=riotgames
+PREFIX=$
+LOG_DIRECTORY=logs
+```
+
+Then run the helper to obtain a valid Twitch access token:
+
+```bash
+python get_tokens.py
+```
+
+The script will guide you through Twitch’s Device Code flow, open your browser, and update `resources/appSettings.env` automatically.
+
+## 🚀 Usage
+
+- On startup, the bot connects to Twitch’s EventSub WebSocket (`wss://eventsub.wss.twitch.tv/ws`).
+- Subscribes to `channel.chat.message` events for each channel in `INITIAL_CHANNELS`.
 - On receiving a chat message:
   - Logs it to disk
   - Checks for command prefixes
@@ -59,28 +110,93 @@ bot/
 
 ## Usage
 
-- Individual secret keys provided by Twitch are required to access the API. Please follow the steps here to acquire yours https://dev.twitch.tv/docs/authentication/
-- Individual secret keys provided by OpenAI are also required. Create an account with OpenAI and go here to get the key https://platform.openai.com/account/api-keys
-- There are pre-set keywords that the bot will respond to, but those can be changed.
+```bash
+make install-dev
+make run
+```
 
-Do not store your API or user keys in a GitHub repository.
+Or manually:
 
-`/resources/appSettings.env_example` shows how to set and safely store all the required variables for the app.
+```bash
+python main.py
+```
 
-Set the TWITCH_CLIENT_ID value in the `appSettings.env` file then run `get_tokens.py` to populate the other authorization related variables. The Twitch client ID can be obtained by visiting https://dev.twitch.tv/console/apps.
+Once running, the bot will:
 
-The app must be registered with Twitch to obtain the Client ID. The Client Secret must also be created manually by visiting https://dev.twitch.tv/console/apps.
+1. Connect to the EventSub WebSocket (`wss://eventsub.wss.twitch.tv/ws`).
 
-Run `python chatgpt_twitch_bot.py` in a CLI to start the application.
+2. Subscribe to `channel.chat.message` events for each channel listed in `INITIAL_CHANNELS`.
 
-## Tech Stack
+3. Log all messages and respond when commands are invoked.
 
-- Python
-- Twitch EventSub API - https://dev.twitch.tv/docs/api/
-- OpenAI (chat + image generation)
-- dotenv for config
-- Async WebSockets
+Example:
 
-## License
+```text
+[streamer678] user123: $joke
+Bot: Why did the GPU go to therapy? It couldn't handle the parallel stress.
+```
 
-Distributed under the MIT License.
+## 🧪 Testing
+
+Lightweight test suite using `pytest` and `pytest-asyncio`.
+
+```bash
+make test
+```
+
+To run with coverage:
+
+```bash
+pytest --cov=bot
+```
+
+## 🧰 Tech Stack
+
+- Python 3.13+
+- Twitch EventSub API → [docs](https://dev.twitch.tv/docs/eventsub)
+- OpenAI API for chat + image generation
+- dotenv for environment management
+- Ruff + Black + pre-commit for linting/formatting
+- pytest for testing
+
+## 🧩 Development Workflow
+
+```bash
+make install-dev   # Install dev dependencies
+make precommit     # Run lint + format hooks
+make test          # Run unit tests
+```
+
+Hooks are configured in `pyproject.toml` and automatically installed via `pre-commit`.
+
+## 🗂️ Logging Output
+
+Each message is saved under:
+
+```txt
+logs/<channel>/<YYYY-MM-DD>/<YYYY-MM-DD>.txt
+```
+
+Example entry:
+
+```txt
+2025-10-07 21:15:34 user123: $story
+```
+
+## 🪪 License
+
+This project is distributed under the MIT License — see [LICENSE](./LICENSE) for details.
+
+## 🤝 Contributing
+
+Pull requests are welcome!
+Please lint and test before submitting:
+
+```bash
+make precommit && make test
+```
+
+## 🧠 Author
+
+Steven Wallace
+GitHub: https://www.github.com/swallace100
