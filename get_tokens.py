@@ -1,21 +1,40 @@
-#!/usr/bin/env python3
 """
 get_tokens.py — Obtain Twitch user access tokens via Device Code flow
 and save them into resources/appSettings.env (preserving existing values).
 
-Run manually when you need fresh tokens.
+Usage:
+    python get_tokens.py
+
+What it does:
+    1) Reads/initializes ./resources/appSettings.env
+    2) Starts Twitch Device Authorization flow
+    3) Polls for the user access token (and refresh token if returned)
+    4) Writes/updates values in appSettings.env
+
+Notes:
+    - This script overwrites the env file (unknown keys are preserved),
+      but comments/ordering (beyond known keys) are not preserved.
+    - A .bak backup is created before writing.
 """
+
+from __future__ import annotations
 
 import sys
 import time
-import requests
 import webbrowser
 from pathlib import Path
+from typing import Dict
+
+import requests
 
 ENV_FILE = Path("./resources/appSettings.env")
 
+# Endpoints & constants
+DEVICE_CODE_URL = "https://id.twitch.tv/oauth2/device"
+TOKEN_URL = "https://id.twitch.tv/oauth2/token"
+
 # Keys we expect in appSettings.env (with defaults for non-secrets)
-DEFAULT_KEYS = {
+DEFAULT_KEYS: Dict[str, str] = {
     "OPENAI_API_KEY": "",
     "TWITCH_ACCESS_TOKEN": "",
     "TWITCH_REFRESH_TOKEN": "",
@@ -28,8 +47,17 @@ DEFAULT_KEYS = {
 }
 
 
-def parse_env_file(path: Path) -> dict:
-    env = {}
+def _mask(value: str, keep: int = 12) -> str:
+    """Return a masked version of a secret for logging."""
+    value = value or ""
+    if len(value) <= keep:
+        return value[:keep] + "…"
+    return value[:keep] + "…"
+
+
+def parse_env_file(path: Path) -> Dict[str, str]:
+    """Parse a simple KEY=VALUE env file into a dict (ignores comments/blank lines)."""
+    env: Dict[str, str] = {}
     if path.exists():
         for line in path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
@@ -40,21 +68,38 @@ def parse_env_file(path: Path) -> dict:
     return env
 
 
-def write_env_file(path: Path, env: dict):
+def write_env_file(path: Path, env: Dict[str, str]) -> None:
+    """Write env values back to file.
+
+    - Known keys are written first in a stable order (from DEFAULT_KEYS).
+    - Unknown keys are appended (preserved).
+    - Creates a .bak backup if the file already exists.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Backup
+    if path.exists():
+        backup = path.with_suffix(path.suffix + ".bak")
+        backup.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+        print(f"📦 Backed up existing env to {backup}")
+
     # Keep a stable order for readability
-    ordered = {k: env.get(k, DEFAULT_KEYS.get(k, "")) for k in DEFAULT_KEYS.keys()}
+    ordered: Dict[str, str] = {
+        k: env.get(k, DEFAULT_KEYS.get(k, "")) for k in DEFAULT_KEYS
+    }
     # Include any extra unknown keys at the end (preserve user additions)
     for k, v in env.items():
         if k not in ordered:
             ordered[k] = v
+
     with path.open("w", encoding="utf-8") as f:
         for k, v in ordered.items():
             f.write(f"{k}={v}\n")
+
     print(f"✅ Updated {path}")
 
 
-def main():
+def main() -> None:
     # Load/initialize env file
     env = parse_env_file(ENV_FILE)
     for k, default in DEFAULT_KEYS.items():
@@ -68,16 +113,22 @@ def main():
         )
         sys.exit(1)
 
+    # Twitch device flow scopes (space-separated). Keep as-is if this worked for you.
     scopes = ["chat:read", "chat:edit", "user:read:chat", "user:write:chat"]
 
     # Step 1: Request device code
-    r = requests.post(
-        "https://id.twitch.tv/oauth2/device",
-        data={"client_id": client_id, "scopes": " ".join(scopes)},
-        headers={"Content-Type": "application/x-www-form-urlencoded"},
-        timeout=30,
-    )
-    r.raise_for_status()
+    try:
+        r = requests.post(
+            DEVICE_CODE_URL,
+            data={"client_id": client_id, "scopes": " ".join(scopes)},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            timeout=30,
+        )
+        r.raise_for_status()
+    except requests.RequestException as e:
+        print(f"❌ Failed to request device code: {e}")
+        sys.exit(1)
+
     resp = r.json()
     device_code = resp["device_code"]
     user_code = resp["user_code"]
@@ -92,21 +143,17 @@ def main():
     else:
         print(f"Go to {verification_uri} and enter code: {user_code}")
 
-    # Try opening the browser for convenience
-    try:
+    # Try opening the browser for convenience (ignore failures)
+    with suppress_exceptions():
         webbrowser.open(verification_uri_complete or verification_uri, new=2)
-    except Exception:
-        pass
 
-    # Let the user complete authorization first
     input("Press Enter here AFTER you authorize the app in the browser... ")
 
     # Step 2: Poll for token (respect interval/expiry)
-    token_url = "https://id.twitch.tv/oauth2/token"
     start = time.time()
     next_interval = interval
 
-    print("Polling Twitch for tokens...")
+    print("Polling Twitch for tokens…")
     while True:
         # Check expiry window
         if time.time() - start > expires_in:
@@ -115,7 +162,7 @@ def main():
 
         try:
             poll = requests.post(
-                token_url,
+                TOKEN_URL,
                 data={
                     "client_id": client_id,
                     "device_code": device_code,
@@ -125,48 +172,59 @@ def main():
                 timeout=30,
             )
         except requests.RequestException as e:
-            print(f"\n⚠️ Network error: {e}. Retrying in {next_interval}s...")
+            print(f"\n⚠️ Network error: {e}. Retrying in {next_interval}s…")
             time.sleep(next_interval)
             continue
 
         if poll.status_code == 200:
             tokens = poll.json()
-            env["TWITCH_ACCESS_TOKEN"] = tokens["access_token"]
+            env["TWITCH_ACCESS_TOKEN"] = tokens.get("access_token", "")
             env["TWITCH_REFRESH_TOKEN"] = tokens.get("refresh_token", "")
 
             print("\n✅ Success! Tokens received.")
-            print(f"Access Token (truncated): {env['TWITCH_ACCESS_TOKEN'][:12]}...")
+            if env["TWITCH_ACCESS_TOKEN"]:
+                print(f"Access Token:  {_mask(env['TWITCH_ACCESS_TOKEN'])}")
             if env["TWITCH_REFRESH_TOKEN"]:
-                print(
-                    f"Refresh Token (truncated): {env['TWITCH_REFRESH_TOKEN'][:12]}..."
-                )
+                print(f"Refresh Token: {_mask(env['TWITCH_REFRESH_TOKEN'])}")
 
             write_env_file(ENV_FILE, env)
             break
-        else:
-            # Expected interim errors from device flow
-            try:
-                err = poll.json()
-                error_type = err.get("error") or err.get("message") or str(err)
-            except Exception:
-                error_type = f"HTTP {poll.status_code}"
 
-            if "authorization_pending" in str(error_type):
-                # User hasn't completed approval yet; wait and try again
-                time.sleep(next_interval)
-                continue
-            if "slow_down" in str(error_type):
-                # Increase polling interval per spec
-                next_interval += 5
-                time.sleep(next_interval)
-                continue
-            if "expired_token" in str(error_type) or "access_denied" in str(error_type):
-                print(f"❌ {error_type}. Please run the script again.")
-                sys.exit(1)
-
-            # Unexpected error
-            print(f"❌ Error polling token: {error_type}")
+        # Handle expected interim errors from device flow
+        error_type = _extract_error(poll)
+        if "authorization_pending" in error_type:
+            time.sleep(next_interval)
+            continue
+        if "slow_down" in error_type:
+            next_interval += 5
+            time.sleep(next_interval)
+            continue
+        if "expired_token" in error_type or "access_denied" in error_type:
+            print(f"❌ {error_type}. Please run the script again.")
             sys.exit(1)
+
+        # Unexpected error
+        print(f"❌ Error polling token: {error_type}")
+        sys.exit(1)
+
+
+def _extract_error(resp: requests.Response) -> str:
+    """Best-effort device-flow error extractor for non-200 responses."""
+    try:
+        data = resp.json()
+        return str(data.get("error") or data.get("message") or data)
+    except Exception:
+        return f"HTTP {resp.status_code}"
+
+
+class suppress_exceptions:
+    """Context manager that swallows all exceptions (used for best-effort ops)."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return True  # swallow
 
 
 if __name__ == "__main__":
